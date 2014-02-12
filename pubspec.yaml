@@ -1,0 +1,11 @@
+name: itinndata
+description: A sample command-line application
+dependencies:
+  browser: any
+  #lawndart: any
+  lawndart:
+    path: /home/curo/projects/lawndart
+  logging: any
+  observe: any
+dev_dependencies:
+  unittest: any
