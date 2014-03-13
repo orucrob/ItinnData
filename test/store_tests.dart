@@ -31,7 +31,6 @@ run(StorageCtrl ctrl) {
   group('inserts and count store user',(){
     test('single insert', (){
       UserDO user = new UserDO();
-      user.LoginID = "aaaa";
       user.Name = "aaaa";
       var f = ctrl.storeUser.insert(user);
       expect(f, completes);
@@ -44,7 +43,6 @@ run(StorageCtrl ctrl) {
     });
     test('second insert', (){
       UserDO user = new UserDO();
-      user.LoginID = "bbbb";
       user.Name = "bbbbb";
       var f = ctrl.storeUser.insert(user);
       expect(f, completes);
@@ -68,7 +66,6 @@ run(StorageCtrl ctrl) {
       var futures = new List();
       while(counter-->0){
         UserDO user = new UserDO();
-        user.LoginID = "login-$counter";
         user.Name = "Name-$counter";
         var f = ctrl.storeUser.insert(user);
         expect(f, completes);

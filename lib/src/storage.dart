@@ -6,7 +6,8 @@ class IndexDesc{
   dynamic keyPath;
   bool unique;
   bool multi;
-  IndexDesc(this.name, this.keyPath, {this.unique:false, this.multi:false});
+  String websqlType; //only TEXT or  NUMERIC are allowed because of auto conversion of values
+  IndexDesc(this.name, this.keyPath, {this.unique:false, this.multi:false, this.websqlType: "TEXT"});
 }
 
 /***
@@ -217,7 +218,7 @@ abstract class LDLocalStorage<T extends LocalDO> extends LocalDataStorage<T>{
       });
     }
     store = new ld.Store(dbName, tableName, indexes: ldindexes);
-    _saveStrings = !ld.IndexedDbStore.supported;//if IDB -> don't need to convert to strings
+    _saveStrings = !(ld.IndexedDbStore.supported || ld.WebSqlStore.supported);//if IDB ir websql -> don't need to convert to strings
 
   }
 
@@ -260,7 +261,7 @@ abstract class LDLocalStorage<T extends LocalDO> extends LocalDataStorage<T>{
   Future<bool> init({ctx}){
     LOG.fine('Initializing store $tableName in $dbName ($store)');
     var c = new Completer<bool>();
-    if(ctx!=null) ctx.perfLog("App CTX INIT STORAGE $dbName $tableName");
+    if(ctx!=null) ctx.perfLog("App CTX INIT STORAGE $dbName $tableName (idb:${ld.IndexedDbStore.supported} , wsql:${ld.WebSqlStore.supported})");
     store.open().then((ok){
       LOG.fine('Initialization of store $tableName in $dbName ($store) successful');
       c.complete(ok);
@@ -306,12 +307,29 @@ abstract class LDLocalStorage<T extends LocalDO> extends LocalDataStorage<T>{
     return c.future;
   }
 
-  Future<Stream<T>> streamAllByIndex(String idxName,{Object only, Object lower, Object upper, bool lowerOpen:false, bool upperOpen:false} ) {
+  Future<Stream<T>> streamAllByIndex(String idxName,{Object only, Object lower, Object upper, bool lowerOpen:false, bool upperOpen:false, String direction} ) {
     return openIfNeed.then((_){
-      return store.allByIndex(idxName, only:only, lower:lower, upper:upper, lowerOpen:lowerOpen, upperOpen:upperOpen).map((jsonormap)=>_fromDbObj(jsonormap));
+      return store.allByIndex(idxName, only:only, lower:lower, upper:upper, lowerOpen:lowerOpen, upperOpen:upperOpen, direction:direction).map((jsonormap)=>_fromDbObj(jsonormap));
     });
   }
 
+  Future<Stream<Map>> streamAllByIndexAsMap(String idxName,{Object only, Object lower, Object upper, bool lowerOpen:false, bool upperOpen:false, String direction} ) {
+    return openIfNeed.then((_){
+      return store.allByIndex(idxName, only:only, lower:lower, upper:upper, lowerOpen:lowerOpen, upperOpen:upperOpen, direction:direction);
+    });
+  }
+
+  Future<Stream<T>> streamAll() {
+    return openIfNeed.then((_){
+      return store.all().map((jsonormap)=>_fromDbObj(jsonormap));
+    });
+  }
+
+  Future<Stream<Map>> streamAllAsMap() {
+    return openIfNeed.then((_){
+      return store.all();
+    });
+  }
 
   ///Gets all [LocalDO] items of this [LocalStorage].
   Future<List<T>> getAll(){
@@ -421,6 +439,21 @@ abstract class LDLocalStorage<T extends LocalDO> extends LocalDataStorage<T>{
       store.nuke().then((_){
         lastIdCounter = 0;
         LOG.finest("Store $tableName in $dbName cleared");
+        c.complete(true);
+        if(!suppressStreams) clearAllCtrl.add(true);
+      }, onError: (err){
+        c.completeError(err);
+      });
+    });
+    return c.future;
+  }
+  ///Clear [LocalStorage].
+  Future<bool> drop(){
+    var c = new Completer();
+    openIfNeed.then((_){
+      store.drop().then((_){
+        lastIdCounter = 0;
+        LOG.finest("Store $tableName in $dbName droped");
         c.complete(true);
         if(!suppressStreams) clearAllCtrl.add(true);
       }, onError: (err){
@@ -541,12 +574,45 @@ abstract class LDStorage<T extends GeneralDO> extends LDLocalStorage<T>{
   }
 
   @override
-  Future<Stream<T>> streamAllByIndex(String idxName,{Object only, Object lower, Object upper, bool lowerOpen:false, bool upperOpen:false, bool inclDeleted:false} ) {
+  Future<Stream<T>> streamAllByIndex(String idxName,{Object only, Object lower, Object upper, bool lowerOpen:false, bool upperOpen:false, bool inclDeleted:false, String direction} ) {
     if(inclDeleted){
-      return super.streamAllByIndex(idxName, only: only, lower: lower, upper: upper, lowerOpen: lowerOpen, upperOpen: upperOpen);
+      return super.streamAllByIndex(idxName, only: only, lower: lower, upper: upper, lowerOpen: lowerOpen, upperOpen: upperOpen, direction:direction);
     }else{
-      return super.streamAllByIndex(idxName, only: only, lower: lower, upper: upper, lowerOpen: lowerOpen, upperOpen: upperOpen).then((stream){
+      return super.streamAllByIndex(idxName, only: only, lower: lower, upper: upper, lowerOpen: lowerOpen, upperOpen: upperOpen, direction:direction).then((stream){
         return stream.where((act)=>(act.Sync!=GeneralDO.SYNC_DELETE));
+      });
+    }
+  }
+
+  @override
+  Future<Stream<Map>> streamAllByIndexAsMap(String idxName,{Object only, Object lower, Object upper, bool lowerOpen:false, bool upperOpen:false, bool inclDeleted:false, String direction} ) {
+    if(inclDeleted){
+      return super.streamAllByIndexAsMap(idxName, only: only, lower: lower, upper: upper, lowerOpen: lowerOpen, upperOpen: upperOpen, direction:direction);
+    }else{
+      return super.streamAllByIndexAsMap(idxName, only: only, lower: lower, upper: upper, lowerOpen: lowerOpen, upperOpen: upperOpen, direction:direction).then((stream){
+        return stream.where((act)=>(act['Sync']!=GeneralDO.SYNC_DELETE));
+      });
+    }
+  }
+
+  @override
+  Future<Stream<T>> streamAll({bool inclDeleted:false} ) {
+    if(inclDeleted){
+      return super.streamAll();
+    }else{
+      return super.streamAll().then((stream){
+        return stream.where((act)=>(act.Sync!=GeneralDO.SYNC_DELETE));
+      });
+    }
+  }
+
+  @override
+  Future<Stream<Map>> streamAllAsMap({bool inclDeleted:false} ) {
+    if(inclDeleted){
+      return super.streamAllAsMap();
+    }else{
+      return super.streamAllAsMap().then((stream){
+        return stream.where((act)=>(act['Sync']!=GeneralDO.SYNC_DELETE));
       });
     }
   }

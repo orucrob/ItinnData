@@ -1,6 +1,6 @@
 library itinndata;
 
-import 'package:lawndart/lawndart.dart' as ld;
+import 'package:lawndart_ext/lawndart_ext.dart' as ld;
 import 'package:logging/logging.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -32,9 +32,6 @@ class ItinnDataContext {
 
   ///logger for library
   final Logger LOG = new Logger('itinndata');
-
-  ///name of DB
-  //String dbName = "itinnDb2";
 
   ///get random string
   static String randomStrings(num length) {

@@ -10,7 +10,6 @@ abstract class LocalDO  extends Object with Observable{
   }
   String toJson(){
     return JSON.encode(toJsonMap());
-    //return stringify(toJsonMap());
   }
   String toString(){
     return toJsonMap().toString();
@@ -39,7 +38,6 @@ abstract class GeneralDO extends LocalDO {
   }
   String toJson(){
     return JSON.encode(toJsonMap());
-    //return stringify(toJsonMap());
   }
   void merge(other){
     this.Id = other.Id;
@@ -52,26 +50,21 @@ abstract class GeneralDO extends LocalDO {
     }else if(other.Id==null){
       return 1;
     }else{
-      Id.compareTo(other.Id);
+      return Id.compareTo(other.Id);
     }
   }
 }
 
 ///DOMAIN OBJECT REPRESENTING USER
 class UserDO extends GeneralDO{
-    String LoginID;
     String ProfileID;
-    String Name;
-    List<String> Roles;
-    List<String> ProfileIDs;
-//    ProfileDO Profile;
+    @observable String Name;
+    @observable List<String> ProfileIDs;
 
     Map toJsonMap(){
       var map = super.toJsonMap();
-      map['LoginID'] = this.LoginID;
       map['ProfileID'] = this.ProfileID;
       map['Name'] = this.Name;
-      map['Roles'] = this.Roles;
       map['ProfileIDs'] = this.ProfileIDs;
       return map;
     }
@@ -87,10 +80,8 @@ class UserDO extends GeneralDO{
       item.SyncId = jsonMap['SyncId'];
       item.Version = jsonMap['Version']!=null ? jsonMap['Version'].floor() : 0;
 
-      item.LoginID = jsonMap['LoginID'];
       item.ProfileID = jsonMap['ProfileID'];
       item.Name = jsonMap['Name'];
-      item.Roles = jsonMap['Roles'];
       item.ProfileIDs = jsonMap['ProfileIDs'];
 
       return item;
@@ -98,74 +89,11 @@ class UserDO extends GeneralDO{
     void merge(UserDO other){
       super.merge(other);
       this.Name = other.Name;
-      this.LoginID = other.LoginID;
       this.ProfileID = other.ProfileID;
-      this.Roles = other.Roles;
       this.ProfileIDs = other.ProfileIDs;
- //     this.Profile = other.Profile;
     }
-
 }
 
-//////DOMAIN OBJECT REPRESENTING USER
-//class DevIssueDO extends GeneralDO{
-//  @observable String AppID;
-//  @observable String Type;
-//  @observable String Status;
-//  @observable List<String> Starred;
-//  @observable String Title;
-//  @observable String Desc;
-//  @observable int Created;
-//  @observable String CreatedBy;
-//
-//    Map toJsonMap(){
-//      var map = super.toJsonMap();
-//      map['AppID'] = this.AppID;
-//      map['Type'] = this.Type;
-//      map['Status'] = this.Status;
-//      map['Starred'] = this.Starred;
-//      map['Title'] = this.Title;
-//      map['Desc'] = this.Desc;
-//      map['Created'] = this.Created;
-//      map['CreatedBy'] = this.CreatedBy;
-//      return map;
-//    }
-//    static DevIssueDO fromJsonMap(Map jsonMap, [DevIssueDO item]){
-//      if(jsonMap==null){
-//        return null;
-//      }
-//      if(item == null){
-//        item = new DevIssueDO();
-//      }
-//      item.Id = jsonMap['Id'];
-//      item.Sync = jsonMap['Sync'];
-//      item.SyncId = jsonMap['SyncId'];
-//      item.Version = jsonMap['Version']!=null ? jsonMap['Version'].floor() : 0;
-//
-//      item.AppID = jsonMap['AppID'];
-//      item.Type = jsonMap['Type'];
-//      item.Status = jsonMap['Status'];
-//      item.Starred = jsonMap['Starred'];
-//      item.Title = jsonMap['Title'];
-//      item.Desc = jsonMap['Desc'];
-//      item.Created = jsonMap['Created'];
-//      item.CreatedBy = jsonMap['CreatedBy'];
-//
-//      return item;
-//    }
-//    void merge(DevIssueDO other){
-//      super.merge(other);
-//      this.AppID = other.AppID;
-//      this.Type = other.Type;
-//      this.Status = other.Status;
-//      this.Starred = other.Starred;
-//      this.Title = other.Title;
-//      this.Desc = other.Desc;
-//      this.Created = other.Created;
-//      this.CreatedBy = other.CreatedBy;
-//    }
-//
-//}
 ///DOMAIN OBJECT REPRESENTING USER's profile
 class ProfileDO extends LocalDO{
   String ProfileKey;
@@ -192,6 +120,72 @@ class ProfileDO extends LocalDO{
     item.Roles = jsonMap['Roles'];
     return item;
   }
+  bool isUserInRole(String userId, String role){
+    //update role to key
+    if(Roles!=null){
+      for(String key in Roles.keys){
+        if(key.toLowerCase() == role.toLowerCase()){
+          //get users
+          List<String> users = this.Roles[key];
+          return users!=null && users.contains(userId);
+        }
+      }
+    }
+    return false;
+  }
+  List<String> getUserRoles(String userid){
+    List<String> ret = new List();
+    if(Roles!=null){
+      for(String role in Roles.keys){
+        if(Roles[role].contains(userid)){
+          ret.add(role);
+        }
+      }
+    }
+    return ret;
+  }
+  List<String> addUserToRole(String userId, String role){
+    var userRoles = getUserRoles(userId);
+    //update role to key
+    if(Roles!=null){
+      for(String key in Roles.keys){
+        if(key.toLowerCase() == role.toLowerCase()){
+          if(!Roles[key].contains(userId)){
+            Roles[key] =Roles[key].toList()..add(userId);
+            userRoles.add(key);
+          }
+          //role found, user added and return
+          return userRoles;
+        }
+      }
+    }else{
+      Roles = new Map();
+    }
+    //role not found
+    Roles[role] = [userId];
+    userRoles.add(role);
+
+    return userRoles;
+  }
+  List<String> removeUserFromRole(String userId, String role){
+    var userRoles = getUserRoles(userId);
+    //update role to key
+    if(Roles!=null){
+      for(String key in Roles.keys){
+        if(key.toLowerCase() == role.toLowerCase()){
+          if(Roles[key].contains(userId)){
+            Roles[key] = Roles[key].toList()..remove(userId);
+            userRoles.remove(key);
+          }
+          //role found, removed and return
+          return userRoles;
+        }
+      }
+    }
+
+    //user not found in role, nothing to remove
+    return userRoles;
+  }
 }
 
 ///DOMAIN OBJECT REPRESENTING Local settings
@@ -202,8 +196,10 @@ class LocalSettingsDO extends LocalDO{
 
   bool offline = true;
   bool moreAnimations = true;
+  String lang = 'en';
   String lastProfileId;
   String token;
+  String login;
 
   Map toJsonMap(){
     var map = super.toJsonMap();
@@ -211,7 +207,10 @@ class LocalSettingsDO extends LocalDO{
     map['profile'] = profile == null?null:profile.toJsonMap();
     map['offline'] = offline;
     map['moreAnimations'] = moreAnimations;
+    map['lang'] = lang;
     map['lastProfileId'] = lastProfileId;
+    map['token'] = token;
+    map['login'] = login;
     return map;
   }
   static LocalSettingsDO fromJsonMap(Map jsonMap, [LocalSettingsDO item]){
@@ -227,7 +226,11 @@ class LocalSettingsDO extends LocalDO{
     item.me = UserDO.fromJsonMap(jsonMap['me']);
     item.offline = jsonMap['offline']==null? true: jsonMap['offline'];
     item.moreAnimations = jsonMap['moreAnimations']==null? true: jsonMap['moreAnimations'];
+    item.lang = jsonMap['lang'];
     item.lastProfileId = jsonMap['lastProfileId'];
+
+    item.token = jsonMap['token'];
+    item.login= jsonMap['login'];
 
     return item;
   }

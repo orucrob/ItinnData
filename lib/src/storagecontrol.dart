@@ -68,6 +68,25 @@ class StorageCtrl{
     });
     return c.future;
   }
+  Future<bool> dropAll({bool deep: false}){
+    var c = new Completer<bool>();
+    var gOK = true;
+    storeUser.drop().then((ok){
+      if(!ok) gOK=false;
+      storeClob.drop().then((ok){
+        if(!ok) gOK=false;
+        if(deep){
+          storeSett.drop().then((ok){
+            if(!ok) gOK=false;
+            c.complete(gOK);
+          });
+        }else{
+          c.complete(gOK);
+        }
+      });
+    });
+    return c.future;
+  }
 
 //  void flagSave(){
 //    if(app.serverMode){

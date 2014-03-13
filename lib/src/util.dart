@@ -85,7 +85,6 @@ class ImageUtil{
    * Detecting vertical squash in loaded image.
    * Fixes a bug which squash image vertically while drawing into canvas for some images.
    * This is a bug in iOS6 devices. This function from https://github.com/stomita/ios-imagefile-megapixel
-   *
    */
   static num detectVerticalSquash(ImageElement img) {
     var iw = img.naturalWidth, ih = img.naturalHeight;
