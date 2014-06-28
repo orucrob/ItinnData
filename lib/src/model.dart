@@ -5,7 +5,7 @@ abstract class LocalDO  extends Object with Observable{
   @observable String Id;
   Map toJsonMap(){
     return {
-      'Id' : this.Id,
+      'id' : this.Id,
     };
   }
   String toJson(){
@@ -30,10 +30,10 @@ abstract class GeneralDO extends LocalDO {
   int Version;
   Map toJsonMap(){
     return {
-      'Id' : this.Id,
-      'SyncId' : this.SyncId,
-      'Version' : this.Version,
-      'Sync': this.Sync
+      'id' : this.Id,
+      'syncId' : this.SyncId,
+      'version' : this.Version,
+      'sync': this.Sync
     };
   }
   String toJson(){
@@ -63,9 +63,9 @@ class UserDO extends GeneralDO{
 
     Map toJsonMap(){
       var map = super.toJsonMap();
-      map['ProfileID'] = this.ProfileID;
-      map['Name'] = this.Name;
-      map['ProfileIDs'] = this.ProfileIDs;
+      map['activeProfile'] = this.ProfileID;
+      map['name'] = this.Name;
+      map['profileIds'] = this.ProfileIDs;
       return map;
     }
     static UserDO fromJsonMap(Map jsonMap, [UserDO item]){
@@ -75,14 +75,14 @@ class UserDO extends GeneralDO{
       if(item == null){
         item = new UserDO();
       }
-      item.Id = jsonMap['Id'];
-      item.Sync = jsonMap['Sync'];
-      item.SyncId = jsonMap['SyncId'];
-      item.Version = jsonMap['Version']!=null ? jsonMap['Version'].floor() : 0;
+      item.Id = jsonMap['id'];
+      item.Sync = jsonMap['sync'];
+      item.SyncId = jsonMap['syncId'];
+      item.Version = jsonMap['version']!=null ? jsonMap['version'].floor() : 0;
 
-      item.ProfileID = jsonMap['ProfileID'];
-      item.Name = jsonMap['Name'];
-      item.ProfileIDs = jsonMap['ProfileIDs'];
+      item.ProfileID = jsonMap['activeProfile'];
+      item.Name = jsonMap['name'];
+      item.ProfileIDs = jsonMap['profileIds'];
 
       return item;
     }
@@ -101,9 +101,9 @@ class ProfileDO extends LocalDO{
   Map Roles;
   Map toJsonMap(){
     var map = super.toJsonMap();
-    map['ProfileKey'] = this.ProfileKey;
-    map['UserIDs'] = this.UserIDs;
-    map['Roles'] = this.Roles;
+    map['key'] = this.ProfileKey;
+    map['userIds'] = this.UserIDs;
+    map['roles'] = this.Roles;
     return map;
   }
   static ProfileDO fromJsonMap(Map jsonMap, [ProfileDO item]){
@@ -113,11 +113,11 @@ class ProfileDO extends LocalDO{
     if(item == null){
       item = new ProfileDO();
     }
-    item.Id = jsonMap['Id'];
+    item.Id = jsonMap['id'];
 
-    item.ProfileKey = jsonMap['ProfileKey'];
-    item.UserIDs = jsonMap['UserIDs'];
-    item.Roles = jsonMap['Roles'];
+    item.ProfileKey = jsonMap['key'];
+    item.UserIDs = jsonMap['userIds'];
+    item.Roles = jsonMap['roles'];
     return item;
   }
   bool isUserInRole(String userId, String role){
@@ -240,9 +240,13 @@ class LocalSettingsDO extends LocalDO{
 ///Domain object holding big string data.
 class BlobDO extends GeneralDO{
   var Data;
+  String name;
+  String type;
   dynamic toJsonMap(){
     var map = super.toJsonMap();
-    map['Data'] = this.Data;
+    map['data'] = this.Data;
+    map['type'] = this.type;
+    map['name'] = this.name;
     return map;
   }
   static BlobDO fromJsonMap(var jsonMap, [BlobDO item]){
@@ -252,12 +256,14 @@ class BlobDO extends GeneralDO{
     if(item == null){
       item = new BlobDO();
     }
-    item.Id = jsonMap['Id'];
-    item.Sync = jsonMap['Sync'];
-    item.SyncId = jsonMap['SyncId'];
-    item.Version = jsonMap['Version'] !=null ? jsonMap['Version'].floor() : 0;
+    item.Id = jsonMap['id'];
+    item.Sync = jsonMap['sync'];
+    item.SyncId = jsonMap['syncId'];
+    item.Version = jsonMap['version'] !=null ? jsonMap['version'].floor() : 0;
 
-    item.Data = jsonMap['Data'];
+    item.Data = jsonMap['data'];
+    item.name = jsonMap['name'];
+    item.type = jsonMap['type'];
     return item;
   }
 }
